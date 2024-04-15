@@ -11,13 +11,26 @@ Triangle::Triangle(Vector& P0, Vector& P1, Vector& P2)
 {
 	points[0] = P0; points[1] = P1; points[2] = P2;
 
-	/* Calculate the normal */
-	normal = Vector(0, 0, 0);
+	//Normal
+	Vector v0 = points[1] - points[0];
+	Vector v1 = points[2] - points[0];
+
+	normal = v0 % v1;
 	normal.normalize();
 
-	//YOUR CODE to Calculate the Min and Max for bounding box
-	Min = Vector(+FLT_MAX, +FLT_MAX, +FLT_MAX);
-	Max = Vector(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+	//Bounding Box
+	Min = Vector(0, 0, 0);
+	Max = Vector(0, 0, 0);
+
+	for (int i = 0; i < 3; i++) {
+		if (points[i].x < Min.x) Min.x = points[i].x;
+		if (points[i].y < Min.y) Min.y = points[i].y;
+		if (points[i].z < Min.z) Min.z = points[i].z;
+
+		if (points[i].x > Max.x) Max.x = points[i].x;
+		if (points[i].y > Max.y) Max.y = points[i].y;
+		if (points[i].z > Max.z) Max.z = points[i].z;
+	}
 
 
 	// enlarge the bounding box a bit just in case...
@@ -40,7 +53,7 @@ Vector Triangle::getNormal(Vector point)
 
 bool Triangle::intercepts(Ray& r, float& t ) {
 
-	//PUT HERE YOUR CODE
+	//TODO: PUT HERE YOUR CODE
 	return (false);
 }
 
@@ -53,7 +66,11 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
    float l;
 
    //Calculate the normal plane: counter-clockwise vectorial product.
-   PN = Vector(0, 0, 0);		
+   Vector v0 = P1 - P0;
+   Vector v1 = P2 - P0;
+
+   PN = v0 % v1;
+   PN.normalize();
 
    if ((l=PN.length()) == 0.0)
    {
@@ -62,7 +79,7 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
    else
    {
      PN.normalize();
-	 //Calculate D
+	 //TODO: Calculate D (What is this?)
      D  = 0.0f;
    }
 }
@@ -73,7 +90,7 @@ Plane::Plane(Vector& P0, Vector& P1, Vector& P2)
 
 bool Plane::intercepts( Ray& r, float& t )
 {
-	//PUT HERE YOUR CODE
+	//TODO: PUT HERE YOUR CODE
    return (false);
 }
 
@@ -85,7 +102,7 @@ Vector Plane::getNormal(Vector point)
 
 bool Sphere::intercepts(Ray& r, float& t )
 {
-	//PUT HERE YOUR CODE
+	//TODO: PUT HERE YOUR CODE
   return (false);
 }
 
@@ -100,7 +117,7 @@ AABB Sphere::GetBoundingBox() {
 	Vector a_min;
 	Vector a_max ;
 
-	//PUT HERE YOUR CODE
+	//TODO: PUT HERE YOUR CODE
 	return(AABB(a_min, a_max));
 }
 
@@ -116,8 +133,8 @@ AABB aaBox::GetBoundingBox() {
 
 bool aaBox::intercepts(Ray& ray, float& t)
 {
-	//PUT HERE YOUR CODE
-		return (false);
+	//TODO: PUT HERE YOUR CODE
+	return (false);
 }
 
 Vector aaBox::getNormal(Vector point)
