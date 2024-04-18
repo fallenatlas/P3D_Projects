@@ -512,8 +512,8 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
 				Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
 				Vector specColor = Vector(material->GetSpecColor().r(), material->GetSpecColor().g(), material->GetSpecColor().b());
-				Vector diffuse = (lightColor % diffColor) * (normal * lightDirection) * material->GetDiffuse();
-				Vector specular = (lightColor % specColor) * powf(max(h * normal, 0.0F), material->GetShine()) * material->GetSpecular();
+				Vector diffuse = Vector(lightColor.x * diffColor.x, lightColor.y * diffColor.y, lightColor.z * diffColor.z) * (normal * lightDirection) * material->GetDiffuse();
+				Vector specular = Vector(lightColor.x * specColor.x, lightColor.y * specColor.y, lightColor.z * specColor.z) * powf(max(h * normal, 0.0F), material->GetShine()) * material->GetSpecular();
 
 				Vector blinnPhong = diffuse + specular;
 				color += Color(blinnPhong.x, blinnPhong.y, blinnPhong.z);
