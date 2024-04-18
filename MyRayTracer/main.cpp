@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <chrono>
 #include <conio.h>
+#include <limits>
 
 #include <GL/glew.h>
 #include <GL/freeglut.h>
@@ -455,7 +456,56 @@ void setupGLUT(int argc, char* argv[])
 
 Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medium 1 where the ray is travelling
 {
-	//INSERT HERE YOUR CODE
+	Color color;
+
+	float smallestDistance = std::numeric_limits<float>::infinity();
+	Object* closestObject = NULL;
+	int numObjects = scene->getNumObjects();
+	for (int i = 0; i < numObjects; i++) {
+		Object* object = scene->getObject(i);
+		float distance = 0;
+		if (object->intercepts(ray, distance)) {
+			if (distance < smallestDistance) {
+				closestObject = object;
+				smallestDistance = distance;
+			}
+		}
+	}
+
+	if (closestObject == NULL) {
+		return scene->GetBackgroundColor();
+	}
+
+	Vector pointOfContact = compute hit point; (direction * distance ?)
+	Vector normal = closestObject->getNormal(pointOfContact);
+
+	int numLights = scene->getNumLights();
+	for (int i = 0; i < numLights; i++) {
+		Light* light = scene->getLight(i);
+		Vector direction = light->position - pointOfContact;
+		if (direction * normal > 0) {
+			if (!point in shadow) { //trace shadow ray
+				color = diffuse color + specular color;
+			}
+		}
+	}
+
+	if (depth >= MAX_DEPTH) return color;
+
+	float reflection = closestObject->GetMaterial()->GetReflection();
+	if (reflection) {
+		Ray rRay = calculate ray in the reflected direction;
+		rColor = rayTracing(scene, point, rRay direction, depth + 1);
+		reduce rColor by the specular reflection coefficient and add to color;
+	}
+
+
+
+
+
+
+
+
 	return Color(0.0f, 0.0f, 0.0f);
 }
 
