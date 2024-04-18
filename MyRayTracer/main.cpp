@@ -454,14 +454,16 @@ void setupGLUT(int argc, char* argv[])
 
 /////////////////////////////////////////////////////YOUR CODE HERE///////////////////////////////////////////////////////////////////////////////////////
 
-bool pointInShadow(Vector origin, Vector direction) {
+bool pointInShadow(Vector origin, Vector direction, float distanceToLight) {
 	Ray ray = Ray(origin, direction);
 	int numObjects = scene->getNumObjects();
 	for (int i = 0; i < numObjects; i++) {
 		Object* object = scene->getObject(i);
 		float distance = 0;
 		if (object->intercepts(ray, distance)) {
-			return true;
+			if (distanceToLight > distance && distance > 10e-7) {
+				return true;
+			}
 		}
 	}
 	return false;
@@ -491,15 +493,21 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	}
 
 	Vector pointOfContact = ray.origin + ray.direction * smallestDistance;  //
-	Vector normal = closestObject->getNormal(pointOfContact);  // still missing
+	Vector normal = closestObject->getNormal(pointOfContact);  // still missing  // error here?
 	Material* material = closestObject->GetMaterial();
 
 	int numLights = scene->getNumLights();
 	for (int i = 0; i < numLights; i++) {
 		Light* light = scene->getLight(i);
-		Vector lightDirection = (light->position - pointOfContact).normalize();
-		if (lightDirection * normal > 0) {
-			if (!pointInShadow(pointOfContact, lightDirection)) { //trace shadow ray
+		Vector lightDirection = light->position - pointOfContact;   // error here?
+		float distanceToLight = lightDirection.length();
+		lightDirection = lightDirection.normalize();
+		if (lightDirection * normal > 0) {                                           // error here?
+			//color += Color(1.0F, 1.0F, 1.0F);
+			
+			if (!pointInShadow(pointOfContact, lightDirection, distanceToLight)) { //trace shadow ray   // error here?
+				//color += Color(1.0F, 1.0F, 1.0F);
+				
 				Vector h = (lightDirection - ray.direction).normalize();
 				Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
 				Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
