@@ -54,7 +54,35 @@ Vector Triangle::getNormal(Vector point)
 bool Triangle::intercepts(Ray& r, float& t ) {
 
 	//TODO: PUT HERE YOUR CODE
-	return (false);
+
+	Vector edge1 = points[1] - points[0];
+	Vector edge2 = points[2] - points[0];
+	Vector ray_cross_edge2 = r.direction % edge2;
+	float det = edge1 * ray_cross_edge2;
+
+	//Check if the ray is parallel to the triangle
+	if (r.direction * edge1 == 0) return false;
+
+	//Make the calculus
+	float inv_det = 1.0f / det;
+	Vector s = r.origin - points[0];
+	float u = s * ray_cross_edge2 * inv_det;
+
+	if (u < 0 || u > 1) return false;
+
+	Vector s_cross_edge1 = s % edge1;
+	float v = r.direction * s_cross_edge1 * inv_det;
+
+	if (v < 0 || u + v > 1) return false;
+
+	//Calculate t
+	float t = edge2 * s_cross_edge1 * inv_det;
+
+	if (t < 0.0f) {
+		return false;
+	}
+
+	return true;
 }
 
 Plane::Plane(Vector& a_PN, float a_D)
@@ -148,6 +176,15 @@ AABB aaBox::GetBoundingBox() {
 bool aaBox::intercepts(Ray& ray, float& t)
 {
 	//TODO: PUT HERE YOUR CODE
+	double tx_min, ty_min, tz_min;
+	double tx_max, ty_max, tz_max;
+
+	double a = 1.0f / ray.direction.x;
+	if (a >= 0) {
+		//tx_min = (x0 -ox) * a;
+		//Don't understand why in the slides they count the ray as 3D but the AABB is only 2D
+	}
+
 	return (false);
 }
 
