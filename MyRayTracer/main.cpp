@@ -454,6 +454,20 @@ void setupGLUT(int argc, char* argv[])
 
 /////////////////////////////////////////////////////YOUR CODE HERE///////////////////////////////////////////////////////////////////////////////////////
 
+bool pointInShadow(Vector origin, Vector direction) {
+	Ray ray = Ray(origin, direction);
+	int numObjects = scene->getNumObjects();
+	for (int i = 0; i < numObjects; i++) {
+		Object* object = scene->getObject(i);
+		float distance = 0;
+		if (object->intercepts(ray, distance)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
 Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medium 1 where the ray is travelling
 {
 	Color color;
@@ -476,24 +490,36 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		return scene->GetBackgroundColor();
 	}
 
-	Vector pointOfContact = compute hit point; (direction * distance ?)
-	Vector normal = closestObject->getNormal(pointOfContact);
+	Vector pointOfContact = ray.origin + ray.direction * smallestDistance;  //
+	Vector normal = closestObject->getNormal(pointOfContact);  // still missing
+	Material* material = closestObject->GetMaterial();
 
 	int numLights = scene->getNumLights();
 	for (int i = 0; i < numLights; i++) {
 		Light* light = scene->getLight(i);
-		Vector direction = light->position - pointOfContact;
-		if (direction * normal > 0) {
-			if (!point in shadow) { //trace shadow ray
-				color = diffuse color + specular color;
+		Vector lightDirection = (light->position - pointOfContact).normalize();
+		if (lightDirection * normal > 0) {
+			if (!pointInShadow(pointOfContact, lightDirection)) { //trace shadow ray
+				Vector h = (lightDirection - ray.direction).normalize();
+				Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
+				Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
+				Vector specColor = Vector(material->GetSpecColor().r(), material->GetSpecColor().g(), material->GetSpecColor().b());
+				Vector diffuse = (lightColor % diffColor) * (normal * lightDirection) * material->GetDiffuse();
+				Vector specular = (lightColor % specColor) * powf(max(h * normal, 0.0F), material->GetShine()) * material->GetSpecular();
+
+				Vector blinnPhong = diffuse + specular;
+				color += Color(blinnPhong.x, blinnPhong.y, blinnPhong.z);
 			}
 		}
 	}
 
+	return color;
+
+	/*
 	if (depth >= MAX_DEPTH) return color;
 
 	float reflection = closestObject->GetMaterial()->GetReflection();
-	if (reflection) {
+	if (reflection > 0.0F) {
 		Ray rRay = calculate ray in the reflected direction;
 		rColor = rayTracing(scene, point, rRay direction, depth + 1);
 		reduce rColor by the specular reflection coefficient and add to color;
@@ -507,6 +533,34 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 
 	return Color(0.0f, 0.0f, 0.0f);
+
+
+	intersect ray with all objects and find a hit point(if any) closest to the start of the ray
+		if (!intersection) return BACKGROUND;
+		else {
+			compute normal at the hit point;
+			for (each source light) {
+				L = unit light vector from hit point to light source;
+				if (L • normal > 0)
+					if (!point in shadow); //trace shadow ray
+				color = diffuse color + specular color;
+			}
+			if (depth >= maxDepth) return color;
+			if (reflective object) {
+				rRay = calculate ray in the reflected direction;
+				rColor = rayTracing(scene, point, rRay direction, depth + 1);
+				reduce rColor by the specular reflection coefficient and add to color;
+			}
+			if (transparent object) {
+				tRay = calculate ray in the refracted direction;
+				tColor = rayTracing(scene, point, tRay direction, depth + 1);
+				reduce tColor by the transmittance coefficient and add to color;
+			}
+			return color;
+		}
+
+	*/
+
 }
 
 
@@ -539,7 +593,7 @@ void renderScene()
 
 			color = rayTracing(ray, 1, 1.0).clamp();
 
-			color = scene->GetBackgroundColor(); //TO CHANGE - just for the template
+			//color = scene->GetBackgroundColor(); //TO CHANGE - just for the template
 
 			img_Data[counter++] = u8fromfloat((float)color.r());
 			img_Data[counter++] = u8fromfloat((float)color.g());
