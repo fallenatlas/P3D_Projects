@@ -76,7 +76,7 @@ bool Triangle::intercepts(Ray& r, float& t ) {
 	if (v < 0 || u + v > 1) return false;
 
 	//Calculate t
-	float t = edge2 * s_cross_edge1 * inv_det;
+	t = edge2 * s_cross_edge1 * inv_det;
 
 	if (t < 0.0f) {
 		return false;
