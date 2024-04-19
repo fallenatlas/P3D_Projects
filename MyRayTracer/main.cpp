@@ -461,7 +461,7 @@ bool pointInShadow(Vector origin, Vector direction, float distanceToLight) {
 		Object* object = scene->getObject(i);
 		float distance = 0;
 		if (object->intercepts(ray, distance)) {
-			if (distanceToLight > distance && distance > 10e-7) {
+			if (distanceToLight > distance && distance > 10e-3) {
 				return true;
 			}
 		}
@@ -521,28 +521,19 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		}
 	}
 
-	return color;
-
-	/*
 	if (depth >= MAX_DEPTH) return color;
 
 	float reflection = closestObject->GetMaterial()->GetReflection();
 	if (reflection > 0.0F) {
-		Ray rRay = calculate ray in the reflected direction;
-		rColor = rayTracing(scene, point, rRay direction, depth + 1);
-		reduce rColor by the specular reflection coefficient and add to color;
+		Vector V = Vector(0.0F, 0.0F, 0.0F) - ray.direction;
+		Vector reflectionDirection = (normal * (2 * (normal * V)) - V).normalize();
+		Ray rRay = Ray(pointOfContact, reflectionDirection);
+		color += rayTracing(rRay, depth + 1, ior_1) * reflection;
 	}
 
+	return color;
 
-
-
-
-
-
-
-	return Color(0.0f, 0.0f, 0.0f);
-
-
+	/*
 	intersect ray with all objects and find a hit point(if any) closest to the start of the ray
 		if (!intersection) return BACKGROUND;
 		else {
@@ -568,6 +559,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		}
 
 	*/
+	
 
 }
 
