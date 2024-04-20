@@ -527,7 +527,8 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	if (reflection > 0.0F) {
 		Vector V = Vector(0.0F, 0.0F, 0.0F) - ray.direction;
 		Vector reflectionDirection = (normal * (2 * (normal * V)) - V).normalize();
-		Ray rRay = Ray(pointOfContact, reflectionDirection);
+		float bias = 0.001; // Robust intersections computation (add N * bias to new Ray origin vector)
+		Ray rRay = Ray(pointOfContact + (normal * bias), reflectionDirection);
 		color += rayTracing(rRay, depth + 1, ior_1) * reflection;
 	}
 
