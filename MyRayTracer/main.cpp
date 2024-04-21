@@ -461,7 +461,7 @@ bool pointInShadow(Vector origin, Vector direction, float distanceToLight) {
 		Object* object = scene->getObject(i);
 		float distance = 0;
 		if (object->intercepts(ray, distance)) {
-			if (distanceToLight > distance && distance > 10e-3) {
+			if (distanceToLight > distance) {
 				return true;
 			}
 		}
@@ -492,47 +492,93 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		return scene->GetBackgroundColor();
 	}
 
-	Vector pointOfContact = ray.origin + ray.direction * smallestDistance;  //
-	Vector normal = closestObject->getNormal(pointOfContact);  // still missing  // error here?
+	Vector hitPoint = ray.origin + ray.direction * smallestDistance;  //
+	Vector normal = closestObject->getNormal(hitPoint);  // still missing  // error here?
+	bool inside = (ray.direction * normal) > 0;
+	float bias = 0.001F;
+	Vector pointOfContact = hitPoint + normal * bias;
+	//Vector pointOfTransmitance = hitPoint + normalForShading * -0.001;
 	Material* material = closestObject->GetMaterial();
 
-	int numLights = scene->getNumLights();
-	for (int i = 0; i < numLights; i++) {
-		Light* light = scene->getLight(i);
-		Vector lightDirection = light->position - pointOfContact;   // error here?
-		float distanceToLight = lightDirection.length();
-		lightDirection = lightDirection.normalize();
-		if (lightDirection * normal > 0) {                                           // error here?
-			//color += Color(1.0F, 1.0F, 1.0F);
-			
+	if (!inside) {
+		int numLights = scene->getNumLights();
+		for (int i = 0; i < numLights; i++) {
+			Light* light = scene->getLight(i);
+			Vector lightDirection = light->position - pointOfContact;   // error here?
+			float distanceToLight = lightDirection.length();
+			lightDirection = lightDirection.normalize();
+			//Vector normalForShading = (ray.direction * normal) <= 0 ? normal : Vector(0.0F, 0.0F, 0.0F) - normal;
+			//if (lightDirection * normal > 0) {                                           // error here?
+				//color += Color(1.0F, 1.0F, 1.0F);
+
 			if (!pointInShadow(pointOfContact, lightDirection, distanceToLight)) { //trace shadow ray   // error here?
 				//color += Color(1.0F, 1.0F, 1.0F);
-				
 				Vector h = (lightDirection - ray.direction).normalize();
 				Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
 				Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
 				Vector specColor = Vector(material->GetSpecColor().r(), material->GetSpecColor().g(), material->GetSpecColor().b());
-				Vector diffuse = Vector(lightColor.x * diffColor.x, lightColor.y * diffColor.y, lightColor.z * diffColor.z) * (normal * lightDirection) * material->GetDiffuse();
+				Vector diffuse = Vector(lightColor.x * diffColor.x, lightColor.y * diffColor.y, lightColor.z * diffColor.z) * max(normal * lightDirection, 0.0F) * material->GetDiffuse();
 				Vector specular = Vector(lightColor.x * specColor.x, lightColor.y * specColor.y, lightColor.z * specColor.z) * powf(max(h * normal, 0.0F), material->GetShine()) * material->GetSpecular();
 
 				Vector blinnPhong = diffuse + specular;
 				color += Color(blinnPhong.x, blinnPhong.y, blinnPhong.z);
 			}
+			//}
 		}
 	}
 
-	if (depth >= MAX_DEPTH) return color;
-
-	float reflection = closestObject->GetMaterial()->GetReflection();
-	if (reflection > 0.0F) {
-		Vector V = Vector(0.0F, 0.0F, 0.0F) - ray.direction;
-		Vector reflectionDirection = (normal * (2 * (normal * V)) - V).normalize();
-		float bias = 0.001; // Robust intersections computation (add N * bias to new Ray origin vector)
-		Ray rRay = Ray(pointOfContact + (normal * bias), reflectionDirection);
-		color += rayTracing(rRay, depth + 1, ior_1) * reflection;
+	if (depth >= MAX_DEPTH) {
+		//if (closestObject->GetMaterial()->GetTransmittance() != 0) {
+		//	std::cout << depth << inside << " normal: " << normal.x << " " << normal.y << " " << normal.z << std::endl;
+		//	std::cout << smallestDistance << " point: " << pointOfContact.x << " " << pointOfContact.y << " " << pointOfContact.z << std::endl;
+		//}
+		return color.clamp();
 	}
 
-	return color;
+	normal = inside ? normal * -1 : normal;
+	Vector V = ray.direction * -1;
+
+	Color rColor;
+	Color tColor;
+
+	float reflection = closestObject->GetMaterial()->GetReflection();
+	bool reflective = reflection > 0.0F;
+	if (reflective) {
+		Vector reflectionDirection = (normal * (2 * (normal * V)) - V).normalize();
+		Ray rRay = Ray(pointOfContact, reflectionDirection);
+		rColor = rayTracing(rRay, depth + 1, ior_1); // * reflection
+	}
+
+	float refraction = closestObject->GetMaterial()->GetRefrIndex();
+	float transmittance = closestObject->GetMaterial()->GetTransmittance();
+	bool transparent = transmittance != 0.0F; // && refraction > 0.0F
+
+	float Kr = reflection;
+
+	if (transparent) {
+		float nextIor = !inside ? refraction : 1.0F;
+		float n = ior_1 / nextIor;
+
+		Vector Vt = (normal * (normal * V)) - V;
+		float sinI = Vt.length();
+		float sinT = n * sinI;
+		float cosT = sqrtf(1 - (sinT * sinT));
+		Vector t = Vt.normalize();
+
+		float r0 = powf((ior_1 - nextIor) / (ior_1 + nextIor), 2);
+		float cosI = inside ? cosT : sqrtf(1 - (sinI * sinI));
+		Kr = r0 + ((1 - r0) * powf(1 - cosI, 5));
+
+		Vector refractionDirection = (t * sinT + normal * -cosT).normalize();
+		Vector pointOfTransmitance = hitPoint + refractionDirection * bias;
+		Ray rRay = Ray(pointOfTransmitance, refractionDirection);
+
+		tColor = rayTracing(rRay, depth + 1, nextIor); // * transmitance
+	}
+
+	color += rColor * Kr + tColor * (1 - Kr);
+
+	return color.clamp();
 
 	/*
 	intersect ray with all objects and find a hit point(if any) closest to the start of the ray
@@ -560,7 +606,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		}
 
 	*/
-	
+
 
 }
 
