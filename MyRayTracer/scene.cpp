@@ -144,8 +144,9 @@ bool Sphere::intercepts(Ray& r, float& t )
 		if(b <= 0.0f) return false;
 		float disc = b * b - c;
 		if(disc <= 0.0f) return false;
-	}	
-	return (c > 0.0f ? t = b - sqrt(powf(b, 2) - c) : t = b - sqrt(powf(b, 2) - c));
+	}
+	t = (c > 0.0f ? b - sqrt(powf(b, 2) - c) : b + sqrt(powf(b, 2) - c));
+	return true;
 }
 
 
