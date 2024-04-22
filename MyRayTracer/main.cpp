@@ -32,6 +32,8 @@ bool P3F_scene = true; //choose between P3F scene or a built-in random scene
 
 #define MAX_DEPTH 4  //number of bounces
 
+#define ANTIALIASING_GRID_SIZE 3  //grid size for antialiasing
+
 #define CAPTION "Whitted Ray-Tracer"
 #define VERTEX_COORD_ATTRIB 0
 #define COLOR_ATTRIB 1
@@ -616,6 +618,8 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 void renderScene()
 {
+	set_rand_seed(time(NULL) * time(NULL));
+
 	int index_pos = 0;
 	int index_col = 0;
 	unsigned int counter = 0;
@@ -632,6 +636,20 @@ void renderScene()
 			Color color;
 
 			Vector pixel;  //viewport coordinates
+			
+			
+			for (int p = 0; p < ANTIALIASING_GRID_SIZE; p++) {
+				for (int q = 0; q < ANTIALIASING_GRID_SIZE; q++) {
+					pixel.x = x + (p + rand_float()) / ANTIALIASING_GRID_SIZE;
+					pixel.y = y + (q + rand_float()) / ANTIALIASING_GRID_SIZE;
+					Ray ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
+					color += rayTracing(ray, 1, 1.0).clamp();
+				}
+			}
+
+			color = color * (1 / pow(ANTIALIASING_GRID_SIZE, 2));
+			
+			/*
 			pixel.x = x + 0.5f;
 			pixel.y = y + 0.5f;
 
@@ -639,6 +657,8 @@ void renderScene()
 			Ray ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
 
 			color = rayTracing(ray, 1, 1.0).clamp();
+			*/
+			
 
 			//color = scene->GetBackgroundColor(); //TO CHANGE - just for the template
 
