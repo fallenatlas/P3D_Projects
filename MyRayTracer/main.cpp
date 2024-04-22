@@ -33,6 +33,7 @@ bool P3F_scene = true; //choose between P3F scene or a built-in random scene
 #define MAX_DEPTH 4  //number of bounces
 
 #define ANTIALIASING_GRID_SIZE 3  //grid size for antialiasing
+#define AREA_LIGHT_LIGHTS 16  //number of lights in the area light source
 
 #define CAPTION "Whitted Ray-Tracer"
 #define VERTEX_COORD_ATTRIB 0
@@ -84,6 +85,8 @@ accelerator Accel_Struct = NONE;
 int RES_X, RES_Y;
 
 int WindowHandle = 0;
+
+bool antialiasing = false;
 
 
 
@@ -506,12 +509,34 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		int numLights = scene->getNumLights();
 		for (int i = 0; i < numLights; i++) {
 			Light* light = scene->getLight(i);
+			//Use the first light as a area light source
+			if (i == 0) {
+				if (antialiasing) {
+
+				}
+				else {
+					int spacing = 1 / sqrt(AREA_LIGHT_LIGHTS);
+					Color brightness = light->color * (1 / AREA_LIGHT_LIGHTS);
+					for (int j = 0; j < AREA_LIGHT_LIGHTS / 2; j++) {
+						for (int k = 0; k < AREA_LIGHT_LIGHTS / 2; k++) {
+							//Original point light will be in a corner of the area light source
+							Light* Nlight = new Light(light->position + Vector(j * spacing, 0, k * spacing), brightness);
+							Vector lightDirection = Nlight->position - pointOfContact;
+
+							float distanceToLight = lightDirection.length();
+							lightDirection = lightDirection.normalize();
+
+						}
+					}
+				}
+			}
+			
 			Vector lightDirection = light->position - pointOfContact;   // error here?
 			float distanceToLight = lightDirection.length();
 			lightDirection = lightDirection.normalize();
 			//Vector normalForShading = (ray.direction * normal) <= 0 ? normal : Vector(0.0F, 0.0F, 0.0F) - normal;
 			//if (lightDirection * normal > 0) {                                           // error here?
-				//color += Color(1.0F, 1.0F, 1.0F);
+			//color += Color(1.0F, 1.0F, 1.0F);
 
 			if (!pointInShadow(pointOfContact, lightDirection, distanceToLight)) { //trace shadow ray   // error here?
 				//color += Color(1.0F, 1.0F, 1.0F);
@@ -637,29 +662,31 @@ void renderScene()
 
 			Vector pixel;  //viewport coordinates
 			
-			
-			for (int p = 0; p < ANTIALIASING_GRID_SIZE; p++) {
-				for (int q = 0; q < ANTIALIASING_GRID_SIZE; q++) {
-					pixel.x = x + (p + rand_float()) / ANTIALIASING_GRID_SIZE;
-					pixel.y = y + (q + rand_float()) / ANTIALIASING_GRID_SIZE;
-					Ray ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
-					color += rayTracing(ray, 1, 1.0).clamp();
+			if (antialiasing) {
+				for (int p = 0; p < ANTIALIASING_GRID_SIZE; p++) {
+					for (int q = 0; q < ANTIALIASING_GRID_SIZE; q++) {
+						pixel.x = x + (p + rand_float()) / ANTIALIASING_GRID_SIZE;
+						pixel.y = y + (q + rand_float()) / ANTIALIASING_GRID_SIZE;
+						Ray ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
+						color += rayTracing(ray, 1, 1.0).clamp();
+					}
 				}
+
+				color = color * (1 / pow(ANTIALIASING_GRID_SIZE, 2));
 			}
+			else {
+				
+				pixel.x = x + 0.5f;
+				pixel.y = y + 0.5f;
 
-			color = color * (1 / pow(ANTIALIASING_GRID_SIZE, 2));
+				//YOUR 2 FUNTIONS:
+				Ray ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
+
+				color = rayTracing(ray, 1, 1.0).clamp();
 			
-			/*
-			pixel.x = x + 0.5f;
-			pixel.y = y + 0.5f;
-
-			//YOUR 2 FUNTIONS:
-			Ray ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
-
-			color = rayTracing(ray, 1, 1.0).clamp();
-			*/
+			}
 			
-
+			
 			//color = scene->GetBackgroundColor(); //TO CHANGE - just for the template
 
 			img_Data[counter++] = u8fromfloat((float)color.r());
