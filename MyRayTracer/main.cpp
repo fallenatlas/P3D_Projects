@@ -191,8 +191,8 @@ void createBufferObjects()
 	glGenBuffers(2, VboId);
 	glBindBuffer(GL_ARRAY_BUFFER, VboId[0]);
 
-	/* Só se faz a alocação dos arrays glBufferData (NULL), e o envio dos pontos para a placa gráfica
-	é feito na drawPoints com GlBufferSubData em tempo de execução pois os arrays são GL_DYNAMIC_DRAW */
+	/* SEse faz a alocação dos arrays glBufferData (NULL), e o envio dos pontos para a placa gráfica
+	Efeito na drawPoints com GlBufferSubData em tempo de execução pois os arrays são GL_DYNAMIC_DRAW */
 	glBufferData(GL_ARRAY_BUFFER, size_vertices, NULL, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(VERTEX_COORD_ATTRIB);
 	glVertexAttribPointer(VERTEX_COORD_ATTRIB, 2, GL_FLOAT, 0, 0, 0);
@@ -475,6 +475,33 @@ bool pointInShadow(Vector origin, Vector direction, float distanceToLight) {
 	return false;
 }
 
+Color softShadowLight(Light* light, Vector pointOfContact, Ray ray, Material* material, Vector normal) {
+
+	Vector lightDirection = light->position - pointOfContact;   // error here?
+	float distanceToLight = lightDirection.length();
+	lightDirection = lightDirection.normalize();
+	//Vector normalForShading = (ray.direction * normal) <= 0 ? normal : Vector(0.0F, 0.0F, 0.0F) - normal;
+	//if (lightDirection * normal > 0) {                                           // error here?
+	//color += Color(1.0F, 1.0F, 1.0F);
+
+	if (!pointInShadow(pointOfContact, lightDirection, distanceToLight)) { //trace shadow ray   // error here?
+		//color += Color(1.0F, 1.0F, 1.0F);
+		Vector h = (lightDirection - ray.direction).normalize();
+		Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
+		Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
+		Vector specColor = Vector(material->GetSpecColor().r(), material->GetSpecColor().g(), material->GetSpecColor().b());
+		Vector diffuse = Vector(lightColor.x * diffColor.x, lightColor.y * diffColor.y, lightColor.z * diffColor.z) * max(normal * lightDirection, 0.0F) * material->GetDiffuse();
+		Vector specular = Vector(lightColor.x * specColor.x, lightColor.y * specColor.y, lightColor.z * specColor.z) * powf(max(h * normal, 0.0F), material->GetShine()) * material->GetSpecular();
+
+		Vector blinnPhong = diffuse + specular;
+		return Color(blinnPhong.x, blinnPhong.y, blinnPhong.z);
+	}
+	else {
+		//Return Shadow
+		return Color(0, 0, 0);
+	}
+}
+
 
 Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medium 1 where the ray is travelling
 {
@@ -511,26 +538,26 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		for (int i = 0; i < numLights; i++) {
 			Light* light = scene->getLight(i);
 			//Use the first light as a area light source
-			if (i == 0) {
+			/*if (i == 0) {
 				if (antialiasing) {
 
 				}
 				else {
+
 					int spacing = 1 / sqrt(AREA_LIGHT_LIGHTS);
 					Color brightness = light->color * (1 / AREA_LIGHT_LIGHTS);
+
 					for (int j = 0; j < AREA_LIGHT_LIGHTS / 2; j++) {
 						for (int k = 0; k < AREA_LIGHT_LIGHTS / 2; k++) {
 							//Original point light will be in a corner of the area light source
-							Light* Nlight = new Light(light->position + Vector(j * spacing, 0, k * spacing), brightness);
-							Vector lightDirection = Nlight->position - pointOfContact;
-
-							float distanceToLight = lightDirection.length();
-							lightDirection = lightDirection.normalize();
-
+							Light* Nlight = new Light(light->position + Vector(j * spacing, k * spacing, light->position.z), brightness);
+							color += softShadowLight(Nlight, pointOfContact, ray, material, normal);							
 						}
 					}
+
+					color *= (1 / AREA_LIGHT_LIGHTS);
 				}
-			}
+			}*/
 			
 			Vector lightDirection = light->position - pointOfContact;   // error here?
 			float distanceToLight = lightDirection.length();
@@ -618,7 +645,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			compute normal at the hit point;
 			for (each source light) {
 				L = unit light vector from hit point to light source;
-				if (L • normal > 0)
+				if (L Enormal > 0)
 					if (!point in shadow); //trace shadow ray
 				color = diffuse color + specular color;
 			}
