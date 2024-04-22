@@ -160,6 +160,10 @@ AABB Sphere::GetBoundingBox() {
 	Vector a_min;
 	Vector a_max ;
 
+	//Get the minimum and maximum points of the bounding box
+	a_min = center - Vector(radius, radius, radius);
+	a_max = center + Vector(radius, radius, radius);
+
 	//TODO: PUT HERE YOUR CODE
 	return(AABB(a_min, a_max));
 }
@@ -182,8 +186,73 @@ bool aaBox::intercepts(Ray& ray, float& t)
 
 	double a = 1.0f / ray.direction.x;
 	if (a >= 0) {
-		//tx_min = (x0 -ox) * a;
-		//Don't understand why in the slides they count the ray as 3D but the AABB is only 2D
+		tx_min = (this->min.x - ray.origin.x) * a;
+		tx_max = (this->max.x - ray.origin.x) * a;
+	}
+	else {
+		tx_min = (this->max.x - ray.origin.x) * a;
+		tx_max = (this->min.x - ray.origin.x) * a;
+	}
+
+	double b = 1.0f / ray.direction.y;
+	if (b >= 0) {
+		ty_min = (this->min.y - ray.origin.y) * b;
+		ty_max = (this->max.y - ray.origin.y) * b;
+	}
+	else {
+		ty_min = (this->max.y - ray.origin.y) * b;
+		ty_max = (this->min.y - ray.origin.y) * b;
+	}
+
+	double c = 1.0f / ray.direction.z;
+	if (c >= 0) {
+		tz_min = (this->min.z - ray.origin.z) * c;
+		tz_max = (this->max.z - ray.origin.z) * c;
+	}
+	else {
+		tz_min = (this->max.z - ray.origin.z) * c;
+		tz_max = (this->min.z - ray.origin.z) * c;
+	}
+
+	float tE, tL;
+	Vector face_in, face_out;
+
+	if (tx_min > ty_min) {
+		tE = tx_min;
+		face_in = (a >= 0.0f) ? Vector(-1, 0, 0) : Vector(1, 0, 0);
+	}
+	else {
+		tE = ty_min;
+		face_in = (b >= 0.0f) ? Vector(0, -1, 0) : Vector(0, 1, 0);
+	}
+	if (tz_min > tE) {
+		tE = tz_min;
+		face_in = (c >= 0.0f) ? Vector(0, 0, -1) : Vector(0, 0, 1);
+	}
+
+	if (tx_max < ty_max) {
+		tL = tx_max;
+		face_out = (a >= 0.0f) ? Vector(1, 0, 0) : Vector(-1, 0, 0);
+	}
+	else {
+		tL = ty_max;
+		face_out = (b >= 0.0f) ? Vector(0, 1, 0) : Vector(0, -1, 0);
+	}
+	if (tz_max < tL) {
+		tL = tz_max;
+		face_out = (c >= 0.0f) ? Vector(0, 0, 1) : Vector(0, 0, -1);
+	}
+
+	if (tE < tL && tL > 0) {
+		if (tE > 0.0f) {
+			t = tE;
+			Normal = face_in;
+		}
+		else {
+			t = tL;
+			Normal = face_out;
+		}
+		return (true);
 	}
 
 	return (false);
