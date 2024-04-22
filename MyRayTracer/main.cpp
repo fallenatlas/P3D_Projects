@@ -24,13 +24,14 @@
 #include "rayAccelerator.h"
 #include "maths.h"
 #include "macros.h"
-
+	
 //Enable OpenGL drawing.  
 bool drawModeEnabled = true;
 
 bool P3F_scene = true; //choose between P3F scene or a built-in random scene
 
 #define MAX_DEPTH 4  //number of bounces
+#define ROUGHNESS 1 //roughness parameter for fuzzy reflection
 
 #define ANTIALIASING_GRID_SIZE 3  //grid size for antialiasing
 #define AREA_LIGHT_LIGHTS 16  //number of lights in the area light source
@@ -571,8 +572,11 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	float reflection = closestObject->GetMaterial()->GetReflection();
 	bool reflective = reflection > 0.0F;
 	if (reflective) {
+
 		Vector reflectionDirection = (normal * (2 * (normal * V)) - V).normalize();
-		Ray rRay = Ray(pointOfContact, reflectionDirection);
+		Vector fuzzyReflectionDirection = (reflectionDirection + ((rnd_unit_sphere() * ROUGHNESS))).normalize();
+
+		Ray rRay = Ray(pointOfContact, fuzzyReflectionDirection);
 		rColor = rayTracing(rRay, depth + 1, ior_1); // * reflection
 	}
 
