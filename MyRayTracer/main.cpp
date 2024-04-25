@@ -1,7 +1,7 @@
  ///////////////////////////////////////////////////////////////////////
 //
 // P3D Course
-// (c) 2021 by João Madeiras Pereira
+// (c) 2021 by Joï¿½o Madeiras Pereira
 //Ray Tracing P3F scenes and drawing points with Modern OpenGL
 //
 ///////////////////////////////////////////////////////////////////////
@@ -191,8 +191,8 @@ void createBufferObjects()
 	glGenBuffers(2, VboId);
 	glBindBuffer(GL_ARRAY_BUFFER, VboId[0]);
 
-	/* SEse faz a alocação dos arrays glBufferData (NULL), e o envio dos pontos para a placa gráfica
-	Efeito na drawPoints com GlBufferSubData em tempo de execução pois os arrays são GL_DYNAMIC_DRAW */
+	/* Sï¿½Ese faz a alocaï¿½ï¿½o dos arrays glBufferData (NULL), e o envio dos pontos para a placa grï¿½fica
+	ï¿½Efeito na drawPoints com GlBufferSubData em tempo de execuï¿½ï¿½o pois os arrays sï¿½o GL_DYNAMIC_DRAW */
 	glBufferData(GL_ARRAY_BUFFER, size_vertices, NULL, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(VERTEX_COORD_ATTRIB);
 	glVertexAttribPointer(VERTEX_COORD_ATTRIB, 2, GL_FLOAT, 0, 0, 0);
@@ -529,11 +529,11 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	Vector normal = closestObject->getNormal(hitPoint);  // still missing  // error here?
 	bool inside = (ray.direction * normal) > 0;
 	float bias = 0.001F;
-	Vector pointOfContact = hitPoint + normal * bias;
+	Vector pointOfContact = hitPoint + normal * EPSILON;
 	//Vector pointOfTransmitance = hitPoint + normalForShading * -0.001;
 	Material* material = closestObject->GetMaterial();
 
-	if (!inside) {
+	//if (!inside) {
 		int numLights = scene->getNumLights();
 		for (int i = 0; i < numLights; i++) {
 			Light* light = scene->getLight(i);
@@ -563,26 +563,26 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			float distanceToLight = lightDirection.length();
 			lightDirection = lightDirection.normalize();
 			//Vector normalForShading = (ray.direction * normal) <= 0 ? normal : Vector(0.0F, 0.0F, 0.0F) - normal;
-			//if (lightDirection * normal > 0) {                                           // error here?
-			//color += Color(1.0F, 1.0F, 1.0F);
-
-			if (!pointInShadow(pointOfContact, lightDirection, distanceToLight)) { //trace shadow ray   // error here?
+			if (lightDirection * normal > 0) {                                           // error here?
 				//color += Color(1.0F, 1.0F, 1.0F);
-				Vector h = (lightDirection - ray.direction).normalize();
-				Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
-				Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
-				Vector specColor = Vector(material->GetSpecColor().r(), material->GetSpecColor().g(), material->GetSpecColor().b());
-				Vector diffuse = Vector(lightColor.x * diffColor.x, lightColor.y * diffColor.y, lightColor.z * diffColor.z) * max(normal * lightDirection, 0.0F) * material->GetDiffuse();
-				Vector specular = Vector(lightColor.x * specColor.x, lightColor.y * specColor.y, lightColor.z * specColor.z) * powf(max(h * normal, 0.0F), material->GetShine()) * material->GetSpecular();
 
-				Vector blinnPhong = diffuse + specular;
-				color += Color(blinnPhong.x, blinnPhong.y, blinnPhong.z);
+				if (!pointInShadow(pointOfContact, lightDirection, distanceToLight)) { //trace shadow ray   // error here?
+					//color += Color(1.0F, 1.0F, 1.0F);
+					Vector h = (lightDirection - ray.direction).normalize();
+					Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
+					Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
+					Vector specColor = Vector(material->GetSpecColor().r(), material->GetSpecColor().g(), material->GetSpecColor().b());
+					Vector diffuse = Vector(lightColor.x * diffColor.x, lightColor.y * diffColor.y, lightColor.z * diffColor.z) * max(normal * lightDirection, 0.0F) * material->GetDiffuse();
+					Vector specular = Vector(lightColor.x * specColor.x, lightColor.y * specColor.y, lightColor.z * specColor.z) * powf(max(h * normal, 0.0F), material->GetShine()) * material->GetSpecular();
+
+					Vector blinnPhong = diffuse + specular;
+					color += Color(blinnPhong.x, blinnPhong.y, blinnPhong.z);
+				}
 			}
-			//}
 		}
-	}
+	//}
 
-	if (depth >= MAX_DEPTH) {
+	if (depth > MAX_DEPTH) {
 		//if (closestObject->GetMaterial()->GetTransmittance() != 0) {
 		//	std::cout << depth << inside << " normal: " << normal.x << " " << normal.y << " " << normal.z << std::endl;
 		//	std::cout << smallestDistance << " point: " << pointOfContact.x << " " << pointOfContact.y << " " << pointOfContact.z << std::endl;
@@ -609,7 +609,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 	float refraction = closestObject->GetMaterial()->GetRefrIndex();
 	float transmittance = closestObject->GetMaterial()->GetTransmittance();
-	bool transparent = transmittance != 0.0F; // && refraction > 0.0F
+	bool transparent = transmittance == 1.0F; // && refraction > 0.0F
 
 	float Kr = reflection;
 
@@ -620,21 +620,23 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		Vector Vt = (normal * (normal * V)) - V;
 		float sinI = Vt.length();
 		float sinT = n * sinI;
-		float cosT = sqrtf(1 - (sinT * sinT));
-		Vector t = Vt.normalize();
+		if (1 - (sinT * sinT) >= 0) {
+			float cosT = sqrtf(1 - (sinT * sinT));
+			Vector t = Vt.normalize();
 
-		float r0 = powf((ior_1 - nextIor) / (ior_1 + nextIor), 2);
-		float cosI = inside ? cosT : sqrtf(1 - (sinI * sinI));
-		Kr = r0 + ((1 - r0) * powf(1 - cosI, 5));
+			float r0 = powf((ior_1 - nextIor) / (ior_1 + nextIor), 2);
+			float cosI = inside ? cosT : sqrtf(1 - (sinI * sinI));
+			Kr = r0 + ((1 - r0) * powf(1 - cosI, 5));
 
-		Vector refractionDirection = (t * sinT + normal * -cosT).normalize();
-		Vector pointOfTransmitance = hitPoint + refractionDirection * bias;
-		Ray rRay = Ray(pointOfTransmitance, refractionDirection);
+			Vector refractionDirection = (t * sinT + normal * -cosT).normalize();
+			Vector pointOfTransmitance = hitPoint + normal * -EPSILON;
+			Ray rRay = Ray(pointOfTransmitance, refractionDirection);
 
-		tColor = rayTracing(rRay, depth + 1, nextIor); // * transmitance
+			tColor = rayTracing(rRay, depth + 1, nextIor); // * transmitance
+		}
 	}
 
-	color += rColor * Kr + tColor * (1 - Kr);
+	color += rColor * Kr + tColor * (1 - Kr); // spec Color
 
 	return color.clamp();
 
@@ -645,7 +647,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			compute normal at the hit point;
 			for (each source light) {
 				L = unit light vector from hit point to light source;
-				if (L Enormal > 0)
+				if (L ï¿½Enormal > 0)
 					if (!point in shadow); //trace shadow ray
 				color = diffuse color + specular color;
 			}
