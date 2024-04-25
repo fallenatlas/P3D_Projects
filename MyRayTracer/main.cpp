@@ -87,7 +87,7 @@ int RES_X, RES_Y;
 
 int WindowHandle = 0;
 
-bool antialiasing = false;
+bool antialiasing = true;
 
 
 
@@ -537,48 +537,62 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		int numLights = scene->getNumLights();
 		for (int i = 0; i < numLights; i++) {
 			Light* light = scene->getLight(i);
-			//Use the first light as a area light source
-			/*if (i == 0) {
-				if (antialiasing) {
+			int spacing = 1 / 8;
+			Color brightness = light->color * (1 / AREA_LIGHT_LIGHTS);
 
+			//I don't know if any of this is working (Area Light for soft shadows)
+			//Use the first light as a area light source
+			if (i == 0) {
+				if (antialiasing) {
+					//For each pixel
+					for (int p = 0; p < ANTIALIASING_GRID_SIZE; p++) {
+						for (int q = 0; q < ANTIALIASING_GRID_SIZE; q++) {
+							Vector pixel;
+							pixel.x = light->position.x + (p + rand_float()) / ANTIALIASING_GRID_SIZE;
+							pixel.y = light->position.y + (q + rand_float()) / ANTIALIASING_GRID_SIZE;
+							pixel.z = light->position.z;
+							Light* NLight = new Light(pixel, brightness);
+							color += softShadowLight(NLight, pointOfContact, ray, material, normal);
+						}
+					}
+
+					color = color * (1 / pow(6, 2));
 				}
 				else {
-
-					int spacing = 1 / sqrt(AREA_LIGHT_LIGHTS);
-					Color brightness = light->color * (1 / AREA_LIGHT_LIGHTS);
-
-					for (int j = 0; j < AREA_LIGHT_LIGHTS / 2; j++) {
-						for (int k = 0; k < AREA_LIGHT_LIGHTS / 2; k++) {
+					for (int j = light->position.x; j < light->position.x + 1; j = j + spacing) {
+						for (int k = light->position.y; k < light->position.y + 1; k = k + spacing) {
 							//Original point light will be in a corner of the area light source
-							Light* Nlight = new Light(light->position + Vector(j * spacing, k * spacing, light->position.z), brightness);
+							Light* Nlight = new Light(Vector(j, k, light->position.z), brightness);
 							color += softShadowLight(Nlight, pointOfContact, ray, material, normal);							
 						}
 					}
 
 					color *= (1 / AREA_LIGHT_LIGHTS);
 				}
-			}*/
-			
-			Vector lightDirection = light->position - pointOfContact;   // error here?
-			float distanceToLight = lightDirection.length();
-			lightDirection = lightDirection.normalize();
-			//Vector normalForShading = (ray.direction * normal) <= 0 ? normal : Vector(0.0F, 0.0F, 0.0F) - normal;
-			if (lightDirection * normal > 0) {                                           // error here?
-				//color += Color(1.0F, 1.0F, 1.0F);
-
-				if (!pointInShadow(pointOfContact, lightDirection, distanceToLight)) { //trace shadow ray   // error here?
-					//color += Color(1.0F, 1.0F, 1.0F);
-					Vector h = (lightDirection - ray.direction).normalize();
-					Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
-					Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
-					Vector specColor = Vector(material->GetSpecColor().r(), material->GetSpecColor().g(), material->GetSpecColor().b());
-					Vector diffuse = Vector(lightColor.x * diffColor.x, lightColor.y * diffColor.y, lightColor.z * diffColor.z) * max(normal * lightDirection, 0.0F) * material->GetDiffuse();
-					Vector specular = Vector(lightColor.x * specColor.x, lightColor.y * specColor.y, lightColor.z * specColor.z) * powf(max(h * normal, 0.0F), material->GetShine()) * material->GetSpecular();
-
-					Vector blinnPhong = diffuse + specular;
-					color += Color(blinnPhong.x, blinnPhong.y, blinnPhong.z);
-				}
 			}
+			else {
+
+				Vector lightDirection = light->position - pointOfContact;   // error here?
+				float distanceToLight = lightDirection.length();
+				lightDirection = lightDirection.normalize();
+				//Vector normalForShading = (ray.direction * normal) <= 0 ? normal : Vector(0.0F, 0.0F, 0.0F) - normal;
+				if (lightDirection * normal > 0) {                                           // error here?
+					//color += Color(1.0F, 1.0F, 1.0F);
+
+					if (!pointInShadow(pointOfContact, lightDirection, distanceToLight)) { //trace shadow ray   // error here?
+						//color += Color(1.0F, 1.0F, 1.0F);
+						Vector h = (lightDirection - ray.direction).normalize();
+						Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
+						Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
+						Vector specColor = Vector(material->GetSpecColor().r(), material->GetSpecColor().g(), material->GetSpecColor().b());
+						Vector diffuse = Vector(lightColor.x * diffColor.x, lightColor.y * diffColor.y, lightColor.z * diffColor.z) * max(normal * lightDirection, 0.0F) * material->GetDiffuse();
+						Vector specular = Vector(lightColor.x * specColor.x, lightColor.y * specColor.y, lightColor.z * specColor.z) * powf(max(h * normal, 0.0F), material->GetShine()) * material->GetSpecular();
+
+						Vector blinnPhong = diffuse + specular;
+						color += Color(blinnPhong.x, blinnPhong.y, blinnPhong.z);
+					}
+				}
+			}		
 		}
 	//}
 
