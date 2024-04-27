@@ -76,20 +76,38 @@ public:
 		float x = pixel_sample.x;
 		float y = pixel_sample.y;
 
-		float rdx = w * (((x + 0.5) / res_x) - 0.5);
-		float rdy = h * (((y + 0.5) / res_x) - 0.5);
+		float rdx = w * ((x / res_x) - 0.5);
+		float rdy = h * ((y / res_x) - 0.5);
 		float rdz = -(eye - at).length();
 
-		ray_dir = ((u / u.length()) * rdx + (v / v.length()) * rdy + (n / n.length()) * rdz).normalize();
+		ray_dir = (u * rdx + v * rdy + n * rdz).normalize();
 
 		return Ray(eye, ray_dir);
 	}
 
 	Ray PrimaryRay(const Vector& lens_sample, const Vector& pixel_sample) // DOF: Rays cast from  a thin lens sample to a pixel sample
 	{
-		
-		Vector ray_dir;
-		Vector eye_offset;
+		Vector p_s;
+		p_s.x = w * ((pixel_sample.x / res_x) - 0.5f);
+		p_s.y = h * ((pixel_sample.y / res_y) - 0.5f);
+		p_s.z = -GetPlaneDist();
+
+		Vector l_s;
+		l_s.x = lens_sample.x * GetAperture() / 2.0f;
+		l_s.y = lens_sample.y * GetAperture() / 2.0f;
+		l_s.z = 0;
+
+		Vector p;
+		p.x = p_s.x * focal_ratio;
+		p.y = p_s.y * focal_ratio;
+
+		Vector rdx = u * (p.x - l_s.x);
+		Vector rdy = v * (p.y - l_s.y);
+		Vector rdz = n * -(focal_ratio * plane_dist);
+
+		Vector ray_dir = (rdx + rdy + rdz).normalize();
+
+		Vector eye_offset = eye + (u * l_s.x) + (v * l_s.y);
 
 		return Ray(eye_offset, ray_dir);
 	}
