@@ -87,7 +87,9 @@ int RES_X, RES_Y;
 
 int WindowHandle = 0;
 
-bool antialiasing = true;
+bool antialiasing = false;
+bool dof = true;
+bool softLights = true;
 
 
 
@@ -653,35 +655,6 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	color += rColor * Kr + tColor * (1 - Kr); // spec Color
 
 	return color.clamp();
-
-	/*
-	intersect ray with all objects and find a hit point(if any) closest to the start of the ray
-		if (!intersection) return BACKGROUND;
-		else {
-			compute normal at the hit point;
-			for (each source light) {
-				L = unit light vector from hit point to light source;
-				if (L �Enormal > 0)
-					if (!point in shadow); //trace shadow ray
-				color = diffuse color + specular color;
-			}
-			if (depth >= maxDepth) return color;
-			if (reflective object) {
-				rRay = calculate ray in the reflected direction;
-				rColor = rayTracing(scene, point, rRay direction, depth + 1);
-				reduce rColor by the specular reflection coefficient and add to color;
-			}
-			if (transparent object) {
-				tRay = calculate ray in the refracted direction;
-				tColor = rayTracing(scene, point, tRay direction, depth + 1);
-				reduce tColor by the transmittance coefficient and add to color;
-			}
-			return color;
-		}
-
-	*/
-
-
 }
 
 
@@ -714,7 +687,14 @@ void renderScene()
 					for (int q = 0; q < ANTIALIASING_GRID_SIZE; q++) {
 						pixel.x = x + (p + rand_float()) / ANTIALIASING_GRID_SIZE;
 						pixel.y = y + (q + rand_float()) / ANTIALIASING_GRID_SIZE;
-						Ray ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
+						Ray ray = Ray(Vector(0.0F, 0.0F, 0.0F), Vector(0.0F, 0.0F, 0.0F));
+						if (dof) {
+							Vector lens_sample = rnd_unit_disk();
+							ray = scene->GetCamera()->PrimaryRay(lens_sample, pixel);
+						}
+						else {
+							Ray ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
+						}
 						color += rayTracing(ray, 1, 1.0).clamp();
 					}
 				}
