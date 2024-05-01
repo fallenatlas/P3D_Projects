@@ -478,7 +478,7 @@ bool pointInShadow(Vector origin, Vector direction, float distanceToLight) {
 }
 
 Color softShadowLight(Light* light, Vector pointOfContact, Ray ray, Material* material, Vector normal) {
-
+	bool inShadow = false;
 	Vector lightDirection = light->position - pointOfContact;   // error here?
 	float distanceToLight = lightDirection.length();
 	lightDirection = lightDirection.normalize();
@@ -486,7 +486,16 @@ Color softShadowLight(Light* light, Vector pointOfContact, Ray ray, Material* ma
 	//if (lightDirection * normal > 0) {                                           // error here?
 	//color += Color(1.0F, 1.0F, 1.0F);
 
-	if (!pointInShadow(pointOfContact, lightDirection, distanceToLight)) { //trace shadow ray   // error here?
+	
+	if (Accel_Struct == accelerator::BVH_ACC) {
+		inShadow = bvh_ptr->Traverse(Ray(pointOfContact, light->position - pointOfContact));
+	}
+	else {
+		inShadow = pointInShadow(pointOfContact, lightDirection, distanceToLight);
+	}
+			
+
+	if (!inShadow) { //trace shadow ray   // error here?
 		//color += Color(1.0F, 1.0F, 1.0F);
 		Vector h = (lightDirection - ray.direction).normalize();
 		Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
@@ -511,14 +520,30 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 	float smallestDistance = std::numeric_limits<float>::infinity();
 	Object* closestObject = NULL;
-	int numObjects = scene->getNumObjects();
-	for (int i = 0; i < numObjects; i++) {
-		Object* object = scene->getObject(i);
-		float distance = 0;
-		if (object->intercepts(ray, distance)) {
-			if (distance < smallestDistance) {
-				closestObject = object;
-				smallestDistance = distance;
+	
+	Vector hitPoint;
+
+	
+	if (Accel_Struct == BVH_ACC) {
+		if (!bvh_ptr->Traverse(ray, &closestObject, hitPoint)) {
+			if (scene->GetSkyBoxFlg()) {
+				return scene->GetSkyboxColor(ray).clamp();
+			}
+			else {
+				return scene->GetBackgroundColor().clamp();
+			}
+		}
+	}
+	else {
+		int numObjects = scene->getNumObjects();
+		for (int i = 0; i < numObjects; i++) {
+			Object* object = scene->getObject(i);
+			float distance = 0;
+			if (object->intercepts(ray, distance)) {
+				if (distance < smallestDistance) {
+					closestObject = object;
+					smallestDistance = distance;
+				}
 			}
 		}
 	}
@@ -527,7 +552,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		return scene->GetBackgroundColor();
 	}
 
-	Vector hitPoint = ray.origin + ray.direction * smallestDistance;  //
+	hitPoint = Accel_Struct == accelerator::NONE ? ray.origin + ray.direction * smallestDistance : hitPoint;  //Accel_Struct != accelerator::NONE ? hitPoint :
 	Vector normal = closestObject->getNormal(hitPoint);  // still missing  // error here?
 	bool inside = (ray.direction * normal) > 0;
 	float bias = 0.001F;
@@ -535,7 +560,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	//Vector pointOfTransmitance = hitPoint + normalForShading * -0.001;
 	Material* material = closestObject->GetMaterial();
 
-	//if (!inside) {
+	if (!inside) {
 		int numLights = scene->getNumLights();
 		for (int i = 0; i < numLights; i++) {
 			Light* light = scene->getLight(i);
@@ -569,7 +594,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 				color += softShadowLight(light, pointOfContact, ray, material, normal);
 			}		
 		}
-	//}
+	}
 
 	if (depth > MAX_DEPTH) {
 		//if (closestObject->GetMaterial()->GetTransmittance() != 0) {
