@@ -486,8 +486,10 @@ Color softShadowLight(Light* light, Vector pointOfContact, Ray ray, Material* ma
 	//if (lightDirection * normal > 0) {                                           // error here?
 	//color += Color(1.0F, 1.0F, 1.0F);
 
-	
-	if (Accel_Struct == accelerator::BVH_ACC) {
+	if (Accel_Struct == accelerator::GRID_ACC) {
+		inShadow = grid_ptr->Traverse(Ray(pointOfContact, light->position - pointOfContact));
+	}
+	else if (Accel_Struct == accelerator::BVH_ACC) {
 		inShadow = bvh_ptr->Traverse(Ray(pointOfContact, light->position - pointOfContact));
 	}
 	else {
@@ -523,7 +525,16 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	
 	Vector hitPoint;
 
-	
+	if (Accel_Struct == GRID_ACC) {
+		if (!grid_ptr->Traverse(ray, &closestObject, hitPoint)) {
+			if (scene->GetSkyBoxFlg()) {
+				return scene->GetSkyboxColor(ray).clamp();
+			}
+			else {
+				return scene->GetBackgroundColor().clamp();
+			}
+		}
+	}
 	if (Accel_Struct == BVH_ACC) {
 		if (!bvh_ptr->Traverse(ray, &closestObject, hitPoint)) {
 			if (scene->GetSkyBoxFlg()) {
