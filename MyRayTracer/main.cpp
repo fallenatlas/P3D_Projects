@@ -33,7 +33,6 @@ bool P3F_scene = true; //choose between P3F scene or a built-in random scene
 #define MAX_DEPTH 4  //number of bounces
 #define ROUGHNESS 0 //roughness parameter for fuzzy reflection
 
-#define ANTIALIASING_GRID_SIZE 4  //grid size for antialiasing
 #define AREA_LIGHT_LIGHTS 16  //number of lights in the area light source
 
 #define CAPTION "Whitted Ray-Tracer"
@@ -87,6 +86,8 @@ int RES_X, RES_Y;
 
 int WindowHandle = 0;
 
+
+unsigned int spp = 1;
 bool antialiasing = true;
 bool dof = true;
 bool softLights = true;
@@ -692,10 +693,10 @@ void renderScene()
 			Vector pixel;  //viewport coordinates
 			
 			if (antialiasing) {
-				for (int p = 0; p < ANTIALIASING_GRID_SIZE; p++) {
-					for (int q = 0; q < ANTIALIASING_GRID_SIZE; q++) {
-						pixel.x = x + (p + rand_float()) / ANTIALIASING_GRID_SIZE;
-						pixel.y = y + (q + rand_float()) / ANTIALIASING_GRID_SIZE;
+				for (int p = 0; p < spp; p++) {
+					for (int q = 0; q < spp; q++) {
+						pixel.x = x + (p + rand_float()) / spp;
+						pixel.y = y + (q + rand_float()) / spp;
 						Ray ray = Ray(Vector(0.0F, 0.0F, 0.0F), Vector(0.0F, 0.0F, 0.0F));
 						if (dof) {
 							Vector lens_sample = rnd_unit_disk();
@@ -708,7 +709,7 @@ void renderScene()
 					}
 				}
 
-				color = color * (1 / pow(ANTIALIASING_GRID_SIZE, 2));
+				color = color * (1 / pow(spp, 2));
 			}
 			else {
 				
@@ -860,9 +861,11 @@ void init_scene(void)
 	else
 		printf("No acceleration data structure.\n\n");
 
-	unsigned int spp = scene->GetSamplesPerPixel();
-	if (spp == 0)
+	spp = scene->GetSamplesPerPixel();
+	if (spp == 0) {
+		spp = 1;
 		printf("Whitted Ray-Tracing\n");
+	}
 	else
 		printf("Distribution Ray-Tracing\n");
 
