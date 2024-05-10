@@ -276,13 +276,13 @@ bool BVH::Traverse(Ray& ray) {  //shadow ray with length
 					bool leftHit = left_node->getAABB().intercepts(ray, tl);
 					bool rightHit = right_node->getAABB().intercepts(ray, tr);
 
-					/*
+					
 					if (left_node->getAABB().isInside(ray.origin)) {
 						tl = 0;
 					}
 					if (left_node->getAABB().isInside(ray.origin)) {
 						tr = 0;
-					}*/
+					}
 
 					if ((leftHit && tl <= length) && (rightHit && tr <= length)) {
 						if (tl <= tr) {

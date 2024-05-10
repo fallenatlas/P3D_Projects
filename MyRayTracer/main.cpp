@@ -31,7 +31,7 @@ bool drawModeEnabled = true;
 bool P3F_scene = true; //choose between P3F scene or a built-in random scene
 
 #define MAX_DEPTH 4  //number of bounces
-#define ROUGHNESS 0 //roughness parameter for fuzzy reflection
+#define ROUGHNESS 0.3 //roughness parameter for fuzzy reflection
 
 #define AREA_LIGHT_LIGHTS 16  //number of lights in the area light source
 
@@ -88,9 +88,9 @@ int WindowHandle = 0;
 
 
 unsigned int spp = 1;
-bool antialiasing = true;
-bool dof = true;
-bool softLights = true;
+bool antialiasing = false;
+bool dof = false;
+bool softLights = false;
 
 
 
@@ -627,9 +627,9 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	if (reflective) {
 
 		Vector reflectionDirection = (normal * (2 * (normal * V)) - V).normalize();
-		Vector fuzzyReflectionDirection = (reflectionDirection + ((rnd_unit_sphere() * ROUGHNESS))).normalize();
+		Vector fuzzyReflectionDirection = (reflectionDirection + ((rnd_unit_sphere() * ROUGHNESS))).normalize(); // falta verificacao
 
-		Ray rRay = Ray(pointOfContact, fuzzyReflectionDirection);
+		Ray rRay = Ray(pointOfContact, (fuzzyReflectionDirection * normal) > 0.0F ? fuzzyReflectionDirection : reflectionDirection);
 		rColor = rayTracing(rRay, depth + 1, ior_1); // * reflection
 	}
 
