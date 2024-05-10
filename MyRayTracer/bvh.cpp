@@ -41,7 +41,7 @@ void BVH::Build(vector<Object *> &objs) {
 			world_bbox.max.x += EPSILON; world_bbox.max.y += EPSILON; world_bbox.max.z += EPSILON;
 			root->setAABB(world_bbox);
 			nodes.push_back(root);
-			std::cout << "phase 1" << std::endl;
+			//std::cout << "phase 1" << std::endl;
 			build_recursive(0, objects.size(), root); // -> root node takes all the 
 		}
 
@@ -70,10 +70,10 @@ int BVH::findMedianSplitIndex(int left_index, int right_index) {
 
 void BVH::build_recursive(int left_index, int right_index, BVHNode *node) {
 	   //PUT YOUR CODE HERE
-	std::cout << "left: " << left_index << " right: " << right_index << std::endl;
+	//std::cout << "left: " << left_index << " right: " << right_index << std::endl;
 	if (right_index - left_index <= Threshold) {
 		node->makeLeaf(left_index, right_index - left_index);
-		std::cout << "leaf" << std::endl;
+		//std::cout << "leaf" << std::endl;
 	}
 	else {
 		// find longest axis && find mid point in axis
@@ -96,7 +96,7 @@ void BVH::build_recursive(int left_index, int right_index, BVHNode *node) {
 		cmp.dimension = dim;
 		std::sort(objects.begin() + left_index, objects.begin() + right_index, cmp);
 		
-		std::cout << "comparison finished" << std::endl;
+		//std::cout << "comparison finished" << std::endl;
 
 		// divide objects
 		float split_value = (aabb.min.getAxisValue(dim) + aabb.max.getAxisValue(dim)) / 2.0F;
@@ -105,7 +105,7 @@ void BVH::build_recursive(int left_index, int right_index, BVHNode *node) {
 		// check if any empty
 		if (split_index == left_index || split_index == right_index) {
 			split_index = findMedianSplitIndex(left_index, right_index);
-			std::cout << "median: " << split_index << std::endl;
+			//std::cout << "median: " << split_index << std::endl;
 		}
 
 		Vector min_left = Vector(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -149,9 +149,9 @@ void BVH::build_recursive(int left_index, int right_index, BVHNode *node) {
 		nodes.push_back(rightNode);
 
 		build_recursive(left_index, split_index, leftNode);
-		std::cout << "left finished finished" << std::endl;
+		//std::cout << "left finished finished" << std::endl;
 		build_recursive(split_index, right_index, rightNode);
-		std::cout << "right finished finished" << std::endl;
+		//std::cout << "right finished finished" << std::endl;
 	}
 
 		//right_index, left_index and split_index refer to the indices in the objects vector

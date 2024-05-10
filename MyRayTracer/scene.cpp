@@ -19,8 +19,8 @@ Triangle::Triangle(Vector& P0, Vector& P1, Vector& P2)
 	normal.normalize();
 
 	//Bounding Box
-	Min = Vector(0, 0, 0);
-	Max = Vector(0, 0, 0);
+	Min = Vector(FLT_MAX, FLT_MAX, FLT_MAX);
+	Max = Vector(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
 	for (int i = 0; i < 3; i++) {
 		if (points[i].x < Min.x) Min.x = points[i].x;
