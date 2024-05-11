@@ -76,8 +76,8 @@ public:
 		float x = pixel_sample.x;
 		float y = pixel_sample.y;
 
-		float rdx = w * ((x / res_x) - 0.5);
-		float rdy = h * ((y / res_x) - 0.5);
+		float rdx = w * (x / res_x - 0.5f);
+		float rdy = h * (y / res_y - 0.5f);
 		float rdz = -(eye - at).length();
 
 		ray_dir = (u * rdx + v * rdy + n * rdz).normalize();

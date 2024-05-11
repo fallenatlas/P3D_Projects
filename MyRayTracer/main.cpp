@@ -581,9 +581,16 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			//Use the first light as a area light source
 			if (softLights) {
 				if (antialiasing) {
-							Vector pixel = Vector(light->position.x - 0.5f, light->position.y - 0.5f, light->position.z);
-							pixel = pixel + Vector(1.0f, 0.0f, 0.0f) * rand_float();
-							pixel = pixel + Vector(0.0f, 1.0f, 0.0f) * rand_float();
+							// for dof
+							/*
+							Vector pixel = Vector(light->position.x - 1.0f, light->position.y - 1.0f, light->position.z);
+							pixel = pixel + Vector(2.0f, 0.0f, 0.0f) * rand_float();
+							pixel = pixel + Vector(0.0f, 2.0f, 0.0f) * rand_float();
+							*/
+							Vector pixel = Vector(light->position.x - 3.0f, light->position.y, light->position.z - 3.0f);
+							pixel = pixel + Vector(6.0f, 0.0f, 0.0f) * rand_float();
+							pixel = pixel + Vector(0.0f, 0.0f, 6.0f) * rand_float();
+							
 							Light* NLight = new Light(pixel, light->color);
 							color += softShadowLight(NLight, pointOfContact, ray, material, normal);
 				}
@@ -595,7 +602,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 					for (int j = 0; j < sqrtf(AREA_LIGHT_LIGHTS); j++) {
 						for (int k = 0; k < sqrtf(AREA_LIGHT_LIGHTS); k++) {
 							//Original point light will be in a corner of the area light source
-							Light* Nlight = new Light(light->position + Vector(initial_offset + (j * spacing), initial_offset + (k * spacing), 0), brightness);
+							Light* Nlight = new Light(light->position + Vector(initial_offset + (j * spacing), 0.0, initial_offset + (k * spacing)), brightness);
 							color += softShadowLight(Nlight, pointOfContact, ray, material, normal);
 						}
 					}
@@ -703,7 +710,7 @@ void renderScene()
 							ray = scene->GetCamera()->PrimaryRay(lens_sample, pixel);
 						}
 						else {
-							Ray ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
+							ray = scene->GetCamera()->PrimaryRay(pixel);   //function from camera.h
 						}
 						color += rayTracing(ray, 1, 1.0).clamp();
 					}
@@ -863,11 +870,14 @@ void init_scene(void)
 
 	spp = scene->GetSamplesPerPixel();
 	if (spp == 0) {
-		spp = 1;
+		antialiasing = false;
+		//spp = 1;
 		printf("Whitted Ray-Tracing\n");
 	}
-	else
+	else {
+		antialiasing = true;
 		printf("Distribution Ray-Tracing\n");
+	}
 
 }
 
