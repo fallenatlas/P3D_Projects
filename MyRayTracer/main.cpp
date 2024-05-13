@@ -480,12 +480,9 @@ bool pointInShadow(Vector origin, Vector direction, float distanceToLight) {
 
 Color softShadowLight(Light* light, Vector pointOfContact, Ray ray, Material* material, Vector normal) {
 	bool inShadow = false;
-	Vector lightDirection = light->position - pointOfContact;   // error here?
+	Vector lightDirection = light->position - pointOfContact;
 	float distanceToLight = lightDirection.length();
 	lightDirection = lightDirection.normalize();
-	//Vector normalForShading = (ray.direction * normal) <= 0 ? normal : Vector(0.0F, 0.0F, 0.0F) - normal;
-	//if (lightDirection * normal > 0) {                                           // error here?
-	//color += Color(1.0F, 1.0F, 1.0F);
 
 	if (Accel_Struct == accelerator::GRID_ACC) {
 		inShadow = grid_ptr->Traverse(Ray(pointOfContact, light->position - pointOfContact));
@@ -498,8 +495,7 @@ Color softShadowLight(Light* light, Vector pointOfContact, Ray ray, Material* ma
 	}
 			
 
-	if (!inShadow) { //trace shadow ray   // error here?
-		//color += Color(1.0F, 1.0F, 1.0F);
+	if (!inShadow) { //trace shadow ray
 		Vector h = (lightDirection - ray.direction).normalize();
 		Vector lightColor = Vector(light->color.r(), light->color.g(), light->color.b());
 		Vector diffColor = Vector(material->GetDiffColor().r(), material->GetDiffColor().g(), material->GetDiffColor().b());
@@ -536,7 +532,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			}
 		}
 	}
-	if (Accel_Struct == BVH_ACC) {
+	else if (Accel_Struct == BVH_ACC) {
 		if (!bvh_ptr->Traverse(ray, &closestObject, hitPoint)) {
 			if (scene->GetSkyBoxFlg()) {
 				return scene->GetSkyboxColor(ray).clamp();
@@ -569,7 +565,6 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	bool inside = (ray.direction * normal) > 0;
 	float bias = 0.001F;
 	Vector pointOfContact = hitPoint + normal * EPSILON;
-	//Vector pointOfTransmitance = hitPoint + normalForShading * -0.001;
 	Material* material = closestObject->GetMaterial();
 
 	if (!inside) {
@@ -577,8 +572,6 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 		for (int i = 0; i < numLights; i++) {
 			Light* light = scene->getLight(i);
 
-			//I don't know if any of this is working (Area Light for soft shadows)
-			//Use the first light as a area light source
 			if (softLights) {
 				if (antialiasing) {
 							// for dof
@@ -616,10 +609,6 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	}
 
 	if (depth > MAX_DEPTH) {
-		//if (closestObject->GetMaterial()->GetTransmittance() != 0) {
-		//	std::cout << depth << inside << " normal: " << normal.x << " " << normal.y << " " << normal.z << std::endl;
-		//	std::cout << smallestDistance << " point: " << pointOfContact.x << " " << pointOfContact.y << " " << pointOfContact.z << std::endl;
-		//}
 		return color.clamp();
 	}
 
@@ -634,7 +623,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 	if (reflective) {
 
 		Vector reflectionDirection = (normal * (2 * (normal * V)) - V).normalize();
-		Vector fuzzyReflectionDirection = (reflectionDirection + ((rnd_unit_sphere() * ROUGHNESS))).normalize(); // falta verificacao
+		Vector fuzzyReflectionDirection = (reflectionDirection + ((rnd_unit_sphere() * ROUGHNESS))).normalize();
 
 		Ray rRay = Ray(pointOfContact, (fuzzyReflectionDirection * normal) > 0.0F ? fuzzyReflectionDirection : reflectionDirection);
 		rColor = rayTracing(rRay, depth + 1, ior_1); // * reflection
@@ -642,7 +631,7 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 
 	float refraction = closestObject->GetMaterial()->GetRefrIndex();
 	float transmittance = closestObject->GetMaterial()->GetTransmittance();
-	bool transparent = transmittance == 1.0F; // && refraction > 0.0F
+	bool transparent = transmittance == 1.0F;
 
 	float Kr = reflection;
 
@@ -665,11 +654,11 @@ Color rayTracing(Ray ray, int depth, float ior_1)  //index of refraction of medi
 			Vector pointOfTransmitance = hitPoint + normal * -EPSILON;
 			Ray rRay = Ray(pointOfTransmitance, refractionDirection);
 
-			tColor = rayTracing(rRay, depth + 1, nextIor); // * transmitance
+			tColor = rayTracing(rRay, depth + 1, nextIor);
 		}
 	}
 
-	color += rColor * Kr + tColor * (1 - Kr); // spec Color
+	color += rColor * Kr + tColor * (1 - Kr);
 
 	return color.clamp();
 }

@@ -95,8 +95,6 @@ void BVH::build_recursive(int left_index, int right_index, BVHNode *node) {
 		Comparator cmp = Comparator();
 		cmp.dimension = dim;
 		std::sort(objects.begin() + left_index, objects.begin() + right_index, cmp);
-		
-		//std::cout << "comparison finished" << std::endl;
 
 		// divide objects
 		float split_value = (aabb.min.getAxisValue(dim) + aabb.max.getAxisValue(dim)) / 2.0F;
@@ -114,20 +112,6 @@ void BVH::build_recursive(int left_index, int right_index, BVHNode *node) {
 		Vector max_right = Vector(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 		AABB left_bbox = AABB(min_left, max_left);
 		AABB right_bbox = AABB(min_right, max_right);
-		/*
-		for (int i = left_index; i < right_index; i++) {
-			if (left_index < split_index) {
-				// add to left
-				AABB bbox = objects[i]->GetBoundingBox();
-				left_bbox.extend(bbox);
-			}
-			else {
-				// add to right
-				AABB bbox = objects[i]->GetBoundingBox();
-				right_bbox.extend(bbox);
-			}
-		}
-		*/
 		for (int i = left_index; i < split_index; i++) {
 			AABB bbox = objects[i]->GetBoundingBox();
 			left_bbox.extend(bbox);
@@ -183,14 +167,14 @@ bool BVH::Traverse(Ray& ray, Object** hit_obj, Vector& hit_point) {
 					bool leftHit = left_node->getAABB().intercepts(ray, tl);
 					bool rightHit = right_node->getAABB().intercepts(ray, tr);
 
-					/*
+					
 					if (left_node->getAABB().isInside(ray.origin)) {
 						tl = 0;
 					}
-					if (left_node->getAABB().isInside(ray.origin)) {
+					if (right_node->getAABB().isInside(ray.origin)) {
 						tr = 0;
 					}
-					*/
+					
 
 					if (leftHit && rightHit) {
 						if (tl <= tr) {
@@ -280,7 +264,7 @@ bool BVH::Traverse(Ray& ray) {  //shadow ray with length
 					if (left_node->getAABB().isInside(ray.origin)) {
 						tl = 0;
 					}
-					if (left_node->getAABB().isInside(ray.origin)) {
+					if (right_node->getAABB().isInside(ray.origin)) {
 						tr = 0;
 					}
 
